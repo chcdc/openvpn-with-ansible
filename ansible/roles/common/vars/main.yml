@@ -1,0 +1,36 @@
+openvpn_dir: "/etc/openvpn"
+port_openvpn: "1190"
+version_easy_rsa: "2.3.3"
+url_easy_rsa: "https://github.com/OpenVPN/easy-rsa-old/archive/{{ version_easy_rsa }}.tar.gz"
+destination_key: "{{ playbook_dir }}/vpn-config/"
+
+applications:
+  - openvpn
+
+keys:
+  - "ca.crt"
+  - "server-cluster-access.crt"
+  - "server-cluster-access.key"
+  - "ta.key"
+  - "dh2048.pem"
+
+directories:
+  - ccd
+  - easy-rsa
+  - keys
+
+KEY_COUNTRY: <change-me>
+KEY_PROVINCE: <change-me>
+KEY_CITY: <change-me>
+KEY_ORG: <change-me>
+KEY_EMAIL: <change-me>
+KEY_EMAIL: <change-me>
+KEY_CN: $*
+KEY_NAME: $*
+KEY_OU: <change-me>
+PKCS11_MODULE_PATH: <change-me>
+PKCS11_PIN: <change-me>
+
+routes:
+  - 10.1.1.0 255.252.0.0
+  - 8.8.8.8 255.255.255.0

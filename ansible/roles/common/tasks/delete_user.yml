@@ -1,0 +1,21 @@
+- name: "get public IP"
+  ipify_facts:
+  register: public_ip
+
+- name: "Delete User"
+  shell: source vars; ./revoke-full "{{ uname }}"
+  args:
+    chdir: "{{ openvpn_dir }}/easy-rsa/"
+    executable: /bin/bash
+  ignore_errors: yes
+
+- name: "Copy crl pem"
+  copy:
+    src: "{{ openvpn_dir }}/easy-rsa/keys/crl.pem"
+    dest: "{{ openvpn_dir }}/keys/"
+    remote_src: yes
+
+- name: "Restart openvpn systemd service"
+  systemd:
+    name: openvpn@server
+    state: restarted

@@ -1,0 +1,102 @@
+- name: "Create directories"
+  file:
+    path: "{{ openvpn_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: 0755
+    recurse: yes
+    state: directory
+  loop: "{{ directories }}"
+
+- name: "Download Easy-rsa"
+  become: yes
+  get_url:
+    url: "{{ url_easy_rsa }}"
+    dest: /tmp
+    mode: 0755
+
+- name: "Extract easy-rsa into /tmp"
+  unarchive:
+    src: /tmp/easy-rsa-old-{{ version_easy_rsa }}.tar.gz
+    dest: /tmp/
+    remote_src: yes
+
+- name: "Copy easy rsa"
+  copy:
+    src: "/tmp/easy-rsa-old-2.3.3/easy-rsa/2.0/"
+    dest: "{{ openvpn_dir }}/easy-rsa"
+    remote_src: yes
+
+- name: Create a symbolic link
+  file:
+    src: "{{ openvpn_dir }}/easy-rsa/openssl-1.0.0.cnf"
+    dest: "{{ openvpn_dir }}/easy-rsa/openssl.cnf"
+    state: link
+
+- name: "Customize CA variable configuration"
+  template:
+    src: openssl_vars.j2
+    dest: "{{ openvpn_dir }}/easy-rsa/vars"
+    mode: 0755
+
+- name: "Build the certificate authority"
+  shell: source vars; ./clean-all ; ./pkitool --initca
+  args:
+    chdir: "{{ openvpn_dir }}/easy-rsa/"
+    executable: /bin/bash
+
+- name: "Build server certificate"
+  shell: source vars; ./pkitool --server server-cluster-access
+  args:
+    chdir: "{{ openvpn_dir }}/easy-rsa/"
+    executable: /bin/bash
+
+- name: "Build Diffie-Hellman parameters and key generation"
+  shell:  source vars; ./build-dh;
+  args:
+    chdir: "{{ openvpn_dir }}/easy-rsa/"
+    executable: /bin/bash
+
+- name: "Openvpn key generation"
+  shell: openvpn --genkey --secret {{ openvpn_dir }}/easy-rsa/keys/ta.key;
+  args:
+    chdir: "{{ openvpn_dir }}"
+    executable: /bin/bash
+
+- name: "Generate client-temp certificate key"
+  shell: source vars; ./pkitool "cert-temp"
+  args:
+    chdir: "{{ openvpn_dir }}/easy-rsa/"
+    executable: /bin/bash
+
+- name: "Delete User client-temp"
+  shell: source vars; ./revoke-full "cert-temp"
+  args:
+    chdir: "{{ openvpn_dir }}/easy-rsa/"
+    executable: /bin/bash
+  ignore_errors: yes
+
+- name: "Copy crl pem"
+  copy:
+    src: "{{ openvpn_dir }}/easy-rsa/keys/crl.pem"
+    dest: "{{ openvpn_dir }}/keys/"
+    remote_src: yes
+
+- name: "Copy key and certificates to /etc/openvpn"
+  copy:
+    remote_src: yes
+    src: "{{ openvpn_dir }}/easy-rsa/keys/{{ item }}"
+    dest: "/etc/openvpn/keys"
+  loop: "{{ keys }}"
+
+- name: "Generate server.conf from sample config"
+  template:
+    src: openvpn_config.j2
+    dest: "{{ openvpn_dir }}/server.conf"
+
+- name: "Start openvpn systemd service"
+  systemd:
+    name: openvpn@server
+    state: started
+    daemon_reload: yes
+    enabled: yes

@@ -1,0 +1,68 @@
+- name: "get public IP"
+  ipify_facts:
+    timeout: 20
+  register: public_ip
+
+- name: "Check user certificate exists"
+  stat: path="{{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn"
+  register: certificate
+
+- name: "Fail if exists"
+  fail: msg="User {{ uname }} certificate exists. Please reconfigure"
+  when: certificate.stat.exists
+
+- name: "Ensure group 'vpn-users' exists"
+  group:
+    name: vpn-users
+    state: present
+
+- name: Add the user
+  user:
+    name: "{{ uname }}"
+    password: "{{ upass | password_hash('sha512') }}"
+    shell: /bin/bash
+    groups: vpn-users
+    append: yes
+    system: no
+    update_password: always
+  register: user
+
+- name: "Generate client certificate key"
+  shell: source vars; ./pkitool "{{ uname }}"
+  args:
+    chdir: "{{ openvpn_dir }}/easy-rsa/"
+    executable: /bin/bash
+
+- name: "Create client certificate configs dir"
+  file:
+    path: "{{ openvpn_dir }}/client/{{ uname }}"
+    state: directory
+    mode: 0700
+
+- name: "Copy client sample configs from remote host itself"
+  template:
+    src: user_ovpn.j2
+    dest: "{{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn"
+    mode: 0755
+
+- name: "Create client ovpn file"
+  shell: "{{ item }}"
+  with_items:
+    - echo -e '<ca>' >> {{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn
+    - cat {{ openvpn_dir }}/easy-rsa/keys/ca.crt >> {{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn
+    - echo -e '</ca>\n<cert>' >> {{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn
+    - cat {{ openvpn_dir }}/easy-rsa/keys/{{ uname }}.crt >> {{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn
+    - echo -e '</cert>\n<key>' >> {{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn
+    - cat {{ openvpn_dir }}/easy-rsa/keys/{{ uname }}.key >> {{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn
+    - echo -e '</key>' >> {{ openvpn_dir }}/client/{{ uname }}/{{ uname }}.ovpn
+  args:
+    chdir: "{{ openvpn_dir }}/easy-rsa/"
+    executable: /bin/bash
+
+- name: Fetch client configurations
+  fetch:
+    src: "{{ openvpn_dir }}/client/{{ uname }}/{{ item|basename }}"
+    dest: "{{ destination_key }}/"
+    flat: yes
+  with_items:
+    - "{{ uname }}.ovpn"

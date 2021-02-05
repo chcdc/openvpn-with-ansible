@@ -1,0 +1,21 @@
+client
+pull
+dev tun
+proto udp
+remote {{ public_ip.ansible_facts.ipify_public_ip }} {{ port_openvpn }} udp
+user nobody
+group nogroup
+comp-lzo
+verb 3
+resolv-retry 10
+persist-key
+persist-tun
+mute-replay-warnings
+auth-user-pass {{ uname }}.txt
+float
+keepalive 10 120
+auth-retry nointeract
+
+remote-cert-tls server
+tls-cipher TLS-DHE-RSA-WITH-AES-256-GCM-SHA384
+cipher AES-256-CBC

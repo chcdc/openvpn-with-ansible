@@ -1,0 +1,36 @@
+port {{ port_openvpn }}
+proto udp
+
+dev tun0
+float
+
+ca {{ openvpn_dir }}/keys/ca.crt
+cert {{ openvpn_dir }}/keys/server.crt
+key {{ openvpn_dir }}/keys/server.key  # This file should be kept secret
+dh {{ openvpn_dir }}/keys/dh2048.pem
+
+crl-verify {{ openvpn_dir }}/easy-rsa/keys/crl.pem
+
+user nobody
+group nogroup
+
+persist-key
+persist-tun
+
+comp-lzo
+topology subnet
+server 10.10.1.0 255.255.255.0
+ifconfig-pool-persist ipp.txt
+
+client-config-dir /etc/openvpn/ccd/
+verify-client-cert
+plugin /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so login
+
+keepalive 10 120
+cipher AES-256-CBC
+
+status /var/log/openvpn-status.log
+log-append /var/log/openvpn.log
+verb 3
+explicit-exit-notify 1
+

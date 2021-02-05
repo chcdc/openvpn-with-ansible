@@ -1,0 +1,98 @@
+- name: Create a directory
+  become: False
+  file:
+    path: "{{ destination_key }}"
+    state: directory
+  delegate_to: localhost
+
+- name: Update all packages to their latest version
+  apt:
+    name: "*"
+    state: latest
+    autoclean: yes
+    update_cache: yes
+    force_apt_get: yes
+    install_recommends: yes
+
+- name: Install Applications
+  package:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ applications }}"
+
+- name: Configuration IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: yes
+
+## Configure firewall
+- name: Accept FORWARD
+  iptables:
+    table: filter
+    chain: FORWARD
+    policy: ACCEPT
+
+- name: Accept INPUT and FORWARD from tun+
+  iptables:
+    action: append
+    table: filter
+    chain: "{{ item }}"
+    in_interface: tun+
+    jump: ACCEPT
+  loop:
+    - 'INPUT'
+    - 'FORWARD'
+
+- name: Masquerade POSTROUTING
+  iptables:
+    action: append
+    table: nat
+    chain: POSTROUTING
+    out_interface: "{{ ansible_default_ipv4.interface }}"
+    jump: MASQUERADE
+
+- name: FORWARD tun+ to tun+ and {{ ansible_default_ipv4.interface }}
+  iptables:
+    action: append
+    table: filter
+    chain: FORWARD
+    in_interface: tun+
+    out_interface: "{{ item }}"
+    jump: ACCEPT
+  loop:
+    - tun+
+    - "{{ ansible_default_ipv4.interface }}"
+
+- name: FORWARD {{ ansible_default_ipv4.interface }} to tun+
+  iptables:
+    action: append
+    table: filter
+    chain: FORWARD
+    in_interface: "{{ ansible_default_ipv4.interface }}"
+    out_interface: tun+
+    jump: ACCEPT
+
+- name: Accept INPUT from port {{ port_openvpn }}
+  iptables:
+    action: append
+    protocol: "{{ item }}"
+    table: filter
+    chain: INPUT
+    jump: ACCEPT
+    destination_port: "{{ port_openvpn }}"
+  loop:
+    - tcp
+    - udp
+
+- name: FORWARD and OUTPUT tun+
+  iptables:
+    action: append
+    table: filter
+    chain: "{{ item}}"
+    out_interface: tun+
+    jump: ACCEPT
+  loop:
+    - FORWARD
+    - OUTPUT

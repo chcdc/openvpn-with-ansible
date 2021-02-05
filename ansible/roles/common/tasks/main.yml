@@ -1,0 +1,26 @@
+- name: Include Variables
+  include_vars: main.yml
+
+- name: Prepare System and Install packages
+  tags: prepare_system
+  become: yes
+  import_tasks: prepare_system.yml
+
+- name: Install Application and Dependecies
+  become: yes
+  import_tasks: application.yml
+
+- name: Create users
+  tags: [never, create_user]
+  become: yes
+  import_tasks: create_user.yml
+
+- name: Delete users
+  tags: [ never, delete_user ]
+  become: yes
+  import_tasks: delete_user.yml
+
+- name: Insert routes and restart OpenVPN Service
+  tags: [ never, routes ]
+  become: yes
+  import_tasks: routes.yml

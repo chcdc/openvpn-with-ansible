@@ -1,0 +1,16 @@
+#  - name: "Regenerate server.conf and insert routes"
+#    template:
+#      src: openvpn_config.j2
+#      dest: "{{ openvpn_dir }}/server.conf"
+
+- name: "Insert new routes"
+  lineinfile:
+    dest: "{{ openvpn_dir }}/server.conf"
+    line: "push 'route {{ item }}'"
+  with_items:
+    - "{{ routes }}"
+
+- name: "Restart openvpn systemd service"
+  systemd:
+    name: openvpn@server
+    state: restarted
