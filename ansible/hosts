@@ -1,0 +1,2 @@
+[servers]
+<host_name> ansible_host=<host_ip> ansible_user=ubuntu
