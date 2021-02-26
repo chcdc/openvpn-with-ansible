@@ -18,7 +18,7 @@ while getopts "d:hp:u:cs" opt; do
       echo "    $0 -u <user> -p <password> -c Create user openvpn."
       echo "    $0 -d <user>                  Delete user openvpn."
       echo "    $0 -s                         Configure OpenVPN Server."
-      echo "    $0 -r <routes>                 Configure routes openvpn."
+      echo "    $0 -r <routes>                Configure routes openvpn."
       exit 0
       ;;
     

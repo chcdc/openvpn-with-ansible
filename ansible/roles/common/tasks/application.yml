@@ -46,7 +46,7 @@
     executable: /bin/bash
 
 - name: "Build server certificate"
-  shell: source vars; ./pkitool --server server-cluster-access
+  shell: source vars; ./pkitool --server server
   args:
     chdir: "{{ openvpn_dir }}/easy-rsa/"
     executable: /bin/bash

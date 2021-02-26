@@ -9,8 +9,8 @@ applications:
 
 keys:
   - "ca.crt"
-  - "server-cluster-access.crt"
-  - "server-cluster-access.key"
+  - "server.crt"
+  - "server.key"
   - "ta.key"
   - "dh2048.pem"
 
