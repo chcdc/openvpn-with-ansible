@@ -43,16 +43,16 @@ while getopts "d:hp:u:cs" opt; do
                          -i ${ANSIBLE_DIR}/hosts \
                          -t delete_user "${ANSIBLE_DIR}"/main.yml
     ;;
-    s ) export ANSIBLE_CONFIG=${path.module}/ansible.cfg
+    s ) export ANSIBLE_CONFIG=${ANSIBLE_DIR}/ansible.cfg
         ansible-playbook -i "${ANSIBLE_DIR}"/ansible/hosts \
                             "${ANSIBLE_DIR}"/ansible/main.yml
-
+    ;;
     r ) routes=$OPTARG
         export ANSIBLE_CONFIG=${ANSIBLE_DIR}/ansible/ansible.cfg
         ansible-playbook --extra-vars "uname=${uname} " \
                          -i "${ANSIBLE_DIR}"/ansible/hosts \
                          -t routes "${ANSIBLE_DIR}"/ansible/main.yml
-    
+    ;;
     \? )
       echo "Invalid Option: -$OPTARG" 1>&2
       exit 1
